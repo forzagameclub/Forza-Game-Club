@@ -75,3 +75,21 @@ index.html faylını brauzerdə açın.
 ## Real sistem üçün vacib
 Google login, WhatsApp OTP, real admin təhlükəsizliyi və bütün cihazlarda ortaq məlumatlar üçün backend/database və rəsmi API inteqrasiyası tələb olunur.
 WhatsApp kod göndərilməsi real layihədə WhatsApp Business API provayderi ilə işləyəcək.
+
+
+## V5 rezervasiya məntiqi
+- Rezervasiyadan əvvəl 5 dəqiqəlik hazırlıq intervalı avtomatik bloklanır.
+  Məsələn 17:30 rezervasiyası varsa, həmin PC üçün yeni rezervasiya ən gec 17:25-də bitməlidir.
+- Rezerv intervalı qırmızı, hazırlıq intervalı sarı göstərilir.
+- Rezervasiya vaxtı gəldikdə PC statusu avtomatik "İstifadədə" olur.
+- Rezervasiya bitəndən sonra PC avtomatik yenidən boş vəziyyətə qayıdır, başqa rezervasiya yoxdursa.
+- Admin PC statusunu istəyə görə manual şəkildə:
+  - Boş
+  - Rezerv
+  - İstifadədə
+  - Texniki
+  - və ya Avtomatik rejimə keçirə bilər.
+- PC kartında "Oyunlara bax" düyməsi var və həmin PC-də olan oyunlar ayrıca açılır.
+
+## Real istifadə üçün
+Bu məntiq real backend/database ilə tətbiq olunmalıdır ki, iki fərqli müştəri eyni anda rezervasiya etməyə çalışanda server səviyyəsində də toqquşma bloklansın.

@@ -96,6 +96,47 @@ function overlaps(aStart,aEnd,bStart,bEnd){
   return aStart < bEnd && bStart < aEnd;
 }
 
+
+function timeToMinutes(t){
+  if(!t || t==='Limitsiz') return null;
+  const [h,m]=t.split(':').map(Number);
+  return h*60+m;
+}
+function minutesToTime(mins){
+  mins = ((mins % 1440) + 1440) % 1440;
+  const h=Math.floor(mins/60), m=mins%60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+function reservationBlockedWindow(r){
+  const start=timeToMinutes(r.start);
+  const end=r.end==='Limitsiz' ? 1440 : timeToMinutes(r.end);
+  return { start: Math.max(0,start-5), end };
+}
+function isNowWithin(date,start,end){
+  const now=new Date();
+  if(date!==todayISO()) return false;
+  const cur=now.getHours()*60+now.getMinutes();
+  const s=timeToMinutes(start);
+  const e=end==='Limitsiz'?1440:timeToMinutes(end);
+  return cur>=s && cur<e;
+}
+function derivedPcStatus(pc, reservationsForDate){
+  if(pc.manualStatus && pc.manualStatus!=='auto') return pc.manualStatus;
+  const activeNow = reservationsForDate.some(r=>r.status!=='cancelled' && isNowWithin(r.date,r.start,r.end));
+  if(activeNow) return 'inuse';
+  const now=new Date();
+  if(bookingDate.value===todayISO()){
+    const cur=now.getHours()*60+now.getMinutes();
+    const upcoming=reservationsForDate.some(r=>{
+      if(r.status==='cancelled')return false;
+      const b=reservationBlockedWindow(r);
+      return cur>=b.start && cur<b.end;
+    });
+    if(upcoming) return 'reserved';
+  }
+  return reservationsForDate.length ? 'reserved' : 'available';
+}
+
 function renderPCs(){
   const reservations = getReservations();
   const statuses = getPcStatuses();
@@ -103,8 +144,7 @@ function renderPCs(){
   pcGrid.innerHTML='';
   statuses.forEach(pc=>{
     const todays = reservations.filter(r=>r.pcId===pc.id && r.date===date && r.status!=='cancelled');
-    let derivedStatus = pc.status;
-    if(pc.status==='available' && todays.length) derivedStatus='reserved';
+    let derivedStatus = pc.status==='maintenance' ? 'maintenance' : derivedPcStatus(pc, todays);
 
     const card=document.createElement('article');
     card.className=`pc-card ${derivedStatus}`;
@@ -117,8 +157,13 @@ function renderPCs(){
         <span>🎮 ${pc.tier}</span>
         <span>💳 ${getPcPrice(pc)} AZN/saat</span>
         <span>🕒 ${todays.length ? todays.map(r=>`${r.start}-${r.end}`).join(', ') : 'Boş'}</span>
-        <span>🕹️ ${pc.games.includes('Forza Horizon 5') ? 'Forza var' : 'Forza yoxdur'}</span>
+        <button class="btn btn-ghost dark" type="button" data-games-pc="${pc.id}">Oyunlara bax</button>
       </div>
+      ${todays.length ? `<div class="pc-schedule">${todays.map(r=>{
+        const b=reservationBlockedWindow(r);
+        const prep=minutesToTime(b.start);
+        return `<span class="slot-chip buffer">${prep}-${r.start} hazırlıq</span><span class="slot-chip booked">${r.start}-${r.end} rezerv</span>`;
+      }).join('')}</div>` : ''}
       <div class="pc-actions">
         <button class="btn ${derivedStatus==='maintenance'?'btn-ghost dark':'btn-primary'}"
           ${derivedStatus==='maintenance'?'disabled':''}
@@ -131,6 +176,16 @@ function renderPCs(){
   document.querySelectorAll('[data-pc]').forEach(btn=>{
     btn.addEventListener('click',()=>openBooking(Number(btn.dataset.pc)));
   });
+  document.querySelectorAll('[data-games-pc]').forEach(btn=>{
+    btn.addEventListener('click',()=>openPcGames(Number(btn.dataset.gamesPc)));
+  });
+}
+
+function openPcGames(id){
+  const pc=getPcStatuses().find(p=>p.id===id);
+  document.getElementById('gamesModalTitle').textContent=`${pc.name} • ${pc.tier}`;
+  document.getElementById('pcGamesList').innerHTML=pc.games.map(g=>`<div class="admin-item"><div><b>${g}</b></div></div>`).join('');
+  document.getElementById('gamesModal').classList.add('open');
 }
 
 function openBooking(id){
@@ -164,13 +219,15 @@ bookingForm.addEventListener('submit',e=>{
     end=`${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}`;
   }
   const reservations=getReservations();
+  const newStart=timeToMinutes(start);
+  const newEnd=end==='Limitsiz'?1440:timeToMinutes(end);
   const conflict=reservations.some(r=>{
     if(r.pcId!==pcId || r.date!==bookingDate.value || r.status==='cancelled') return false;
-    if(end==='Limitsiz' || r.end==='Limitsiz') return start < (r.end==='Limitsiz' ? '23:59' : r.end);
-    return overlaps(start,end,r.start,r.end);
+    const blocked=reservationBlockedWindow(r);
+    return newStart < blocked.end && blocked.start < newEnd;
   });
   if(conflict){
-    alert('Bu saat aralığında həmin PC artıq rezerv olunub.');
+    alert('Bu saat aralığı boş deyil. Mövcud rezervasiyadan əvvəlki 5 dəqiqəlik hazırlıq müddəti də bloklanır.');
     return;
   }
   const pc = getPcStatuses().find(p=>p.id===pcId);
@@ -198,6 +255,7 @@ bookingForm.addEventListener('submit',e=>{
   document.getElementById('startTime').value='18:00';
   bookingModal.classList.remove('open');
   renderPCs();
+setInterval(renderPCs, 60000);
   alert(duration==='unlimited' ? 'Rezervasiya yaradıldı! Müddət: Limitsiz' : `Rezervasiya yaradıldı! Məbləğ: ${totalPrice} AZN`);
 });
 
@@ -272,15 +330,20 @@ function renderAdmin(tab){
     const pcs=getPcStatuses();
     adminContent.innerHTML=`<div class="admin-list">${pcs.map(p=>`
       <div class="admin-item">
-        <div><b>${p.name}</b><small>${p.tier} • ${statusLabels[p.status]}</small></div>
+        <div><b>${p.name}</b><small>${p.tier} • <span class="admin-badge">${(p.manualStatus||'auto')==='auto'?'Avtomatik':'Manual: '+statusLabels[p.manualStatus]}</span></small></div>
         <select class="status-select" data-status-pc="${p.id}">
-          ${['available','inuse','maintenance'].map(s=>`<option value="${s}" ${p.status===s?'selected':''}>${statusLabels[s]}</option>`).join('')}
+          <option value="auto" ${(p.manualStatus||'auto')==='auto'?'selected':''}>Avtomatik</option>
+          <option value="reserved" ${p.manualStatus==='reserved'?'selected':''}>Rezerv</option>
+          <option value="inuse" ${p.manualStatus==='inuse'?'selected':''}>İstifadədə</option>
+          <option value="maintenance" ${p.manualStatus==='maintenance'?'selected':''}>Texniki</option>
+          <option value="available" ${p.manualStatus==='available'?'selected':''}>Boş</option>
         </select>
       </div>`).join('')}</div>`;
     document.querySelectorAll('[data-status-pc]').forEach(s=>s.addEventListener('change',()=>{
       const pcs=getPcStatuses();
       const pc=pcs.find(p=>p.id===Number(s.dataset.statusPc));
-      pc.status=s.value;
+      pc.manualStatus=s.value;
+      pc.status=s.value==='maintenance'?'maintenance':'available';
       savePcStatuses(pcs);renderAdmin('pcs');renderPCs();
     }));
   }else if(tab==='customers'){

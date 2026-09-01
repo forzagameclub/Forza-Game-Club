@@ -175,3 +175,10 @@ footer{padding:28px 6vw;border-top:1px solid var(--line);display:flex;justify-co
 .blacklisted{color:#ff6978}
 .bonus{color:#ffc857}
 @media(max-width:560px){.admin-grid-form{grid-template-columns:1fr}.customer-summary{grid-template-columns:1fr}}
+
+.pc-schedule{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 14px}
+.slot-chip{padding:6px 8px;border-radius:8px;font-size:11px;border:1px solid #252c38;background:#0d1118;color:#aab3c2}
+.slot-chip.booked{background:#3a151b;border-color:#6e222d;color:#ff9aa5}
+.slot-chip.buffer{background:#3a2b13;border-color:#6d4d1b;color:#ffd27a}
+.slot-chip.free{background:#123120;border-color:#24563a;color:#8ae8b3}
+.admin-badge{display:inline-flex;padding:4px 7px;border-radius:999px;font-size:10px;background:#242b37;color:#cfd6df}
