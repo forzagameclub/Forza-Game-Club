@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Forza Game Club</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a href="#home" class="brand">
+      <div class="brand-mark">FG</div>
+      <div>
+        <div class="brand-name">FORZA</div>
+        <div class="brand-sub">GAME CLUB</div>
+      </div>
+    </a>
+    <button class="menu-btn" id="menuBtn" aria-label="Menyu">☰</button>
+    <nav id="mainNav">
+      <a href="#home">Ana səhifə</a>
+      <a href="#reserve">Rezervasiya</a>
+      <a href="#games">Oyunlar</a>
+      <a href="#location">Məkan</a>
+      <a href="#support">Dəstək</a>
+      <button class="admin-link" id="openAccount">Hesab</button>
+      <button class="admin-link" id="openAdmin">Admin</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" id="home">
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <div class="eyebrow">SUMQAYIT • GAMING • RACING • ESPORTS</div>
+        <h1>Oyuna gir.<br><span>Yerini əvvəlcədən seç.</span></h1>
+        <p>16 gaming kompüterindən zal növünü seç, boş PC-ni rezerv et və gəlib birbaşa oyuna başla.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#reserve">PC rezerv et</a>
+          <a class="btn btn-ghost" href="#games">Oyunlara bax</a>
+        </div>
+        <div class="hero-stats">
+          <div><strong>16</strong><span>Gaming PC</span></div>
+          <div><strong>8</strong><span>VIP PC</span></div>
+          <div><strong>4–5₼</strong><span>Saatlıq</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="reserve">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">REZERVASİYA</div>
+          <h2>PC-ni seç</h2>
+          <p>Yaşıl — boş, qırmızı — rezerv, sarı — istifadədə, boz — texniki baxış.</p>
+        </div>
+        <div class="date-wrap">
+          <label for="bookingDate">Tarix</label>
+          <input type="date" id="bookingDate" />
+        </div>
+      </div>
+      
+      <div class="tier-grid">
+        <div class="tier-card">
+          <div class="tier-badge">STANDART</div>
+          <h3>Adi zal</h3>
+          <div class="tier-price">4 AZN <span>/ saat</span></div>
+          <p>8 kompüter • Standart gaming zona</p>
+        </div>
+        <div class="tier-card vip">
+          <div class="tier-badge">VIP</div>
+          <h3>VIP sadə</h3>
+          <div class="tier-price">5 AZN <span>/ saat</span></div>
+          <p>4 kompüter • Forza Horizon 5/6 mövcud deyil</p>
+        </div>
+        <div class="tier-card vip4k">
+          <div class="tier-badge">VIP 4K</div>
+          <h3>VIP 4K</h3>
+          <div class="tier-price">5 AZN <span>/ saat</span></div>
+          <p>4 kompüter • Premium gaming zona</p>
+        </div>
+      </div>
+<div class="legend">
+        <span><i class="dot available"></i>Boş</span>
+        <span><i class="dot reserved"></i>Rezerv</span>
+        <span><i class="dot inuse"></i>İstifadədə</span>
+        <span><i class="dot maintenance"></i>Texniki</span>
+      </div>
+      <div class="pc-grid" id="pcGrid"></div>
+    </section>
+
+    <section class="section alt" id="games">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">OYUN KİTABXANASI</div>
+          <h2>Mövcud oyunlar</h2>
+          <p>Oyunların mövcudluğu kompüter kateqoriyasına görə dəyişə bilər.</p>
+        </div>
+      </div>
+      <div class="game-grid" id="gameGrid"></div>
+    </section>
+
+    <section class="section location-section" id="location">
+      <div class="location-card">
+        <div class="eyebrow">MƏKAN</div>
+        <h2>Forza Game Club</h2>
+        <p>Ünvanı və xəritə linkini admin paneldən dəyişmək üçün struktur hazırdır.</p>
+        <div class="info-list">
+          <div><span>📍</span><div><b>Ünvan</b><small>Sumqayıt, Azərbaycan — dəqiq ünvan əlavə ediləcək</small></div></div>
+          <div><span>🕒</span><div><b>İş saatı</b><small>Hər gün 10:00 – 02:00</small></div></div>
+          <div><span>☎️</span><div><b>Əlaqə</b><small>+994 XX XXX XX XX</small></div></div>
+        </div>
+      </div>
+      <div class="map-placeholder">
+        <div>🗺️</div>
+        <b>Xəritə burada olacaq</b>
+        <span>Google Maps / OpenStreetMap inteqrasiyası növbəti mərhələdə</span>
+      </div>
+    </section>
+
+    <section class="section alt" id="support">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">DƏSTƏK</div>
+          <h2>Bizimlə danış</h2>
+          <p>Canlı operator və AI köməkçi üçün ilkin interfeys.</p>
+        </div>
+      </div>
+      <div class="support-grid">
+        <div class="support-card">
+          <div class="support-icon">👨‍💻</div>
+          <h3>Canlı dəstək</h3>
+          <p>Operatora mesaj yaz. Real-time chat növbəti mərhələdə backend-ə qoşulacaq.</p>
+          <button class="btn btn-primary" id="liveSupportBtn">Mesaj yaz</button>
+        </div>
+        <div class="support-card">
+          <div class="support-icon">🤖</div>
+          <h3>AI köməkçi</h3>
+          <p>Qiymət, oyunlar, iş saatları və rezervasiya qaydaları barədə tez cavab al.</p>
+          <button class="btn btn-ghost dark" id="aiSupportBtn">AI ilə danış</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="brand">
+      <div class="brand-mark">FG</div>
+      <div>
+        <div class="brand-name">FORZA</div>
+        <div class="brand-sub">GAME CLUB</div>
+      </div>
+    </div>
+    <p>© 2026 Forza Game Club. Demo versiya.</p>
+  </footer>
+
+
+  <!-- Customer Account Modal -->
+  <div class="modal" id="accountModal">
+    <div class="modal-card account-card">
+      <button class="modal-close" data-close="accountModal">×</button>
+      <div class="eyebrow">MÜŞTƏRİ HESABI</div>
+      <h3>Giriş / Qeydiyyat</h3>
+      <div class="auth-tabs">
+        <button class="tab active" data-auth="google">Google</button>
+        <button class="tab" data-auth="phone">Telefon</button>
+      </div>
+      <div id="googleAuth">
+        <button class="btn btn-ghost dark full" id="googleDemoBtn">Gmail ilə davam et</button>
+        <p class="form-note">Real versiyada Google OAuth qoşulacaq.</p>
+      </div>
+      <div id="phoneAuth" class="hidden">
+        <label>WhatsApp nömrəsi<input id="waPhone" placeholder="+994..." /></label>
+        <button class="btn btn-primary full" id="sendWaCodeBtn">WhatsApp-a kod göndər</button>
+        <div id="waVerify" class="hidden">
+          <label>Təsdiq kodu<input id="waCode" placeholder="6 rəqəmli kod" /></label>
+          <button class="btn btn-ghost dark full" id="verifyWaCodeBtn">Təsdiqlə</button>
+        </div>
+        <p class="form-note">WhatsApp kodu real sistemdə WhatsApp Business API provayderi ilə işləyəcək.</p>
+      </div>
+
+      <div id="customerDashboard" class="hidden">
+        <div class="customer-summary">
+          <div><span>Bonus balansı</span><strong id="customerBonus">0 AZN</strong></div>
+          <div><span>Status</span><strong id="customerStatus">Aktiv</strong></div>
+        </div>
+        <h4>Rezervasiyalarım</h4>
+        <div id="myReservations" class="admin-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Booking Modal -->
+  <div class="modal" id="bookingModal">
+    <div class="modal-card">
+      <button class="modal-close" data-close="bookingModal">×</button>
+      <div class="eyebrow">REZERVASİYA</div>
+      <h3 id="bookingTitle">PC-01</h3>
+      <form id="bookingForm">
+        <input type="hidden" id="selectedPc" />
+        <label>Ad və soyad<input required id="customerName" placeholder="Məs: Mahmud Zeynalov" /></label>
+        <label>Telefon<input required id="customerPhone" placeholder="+994..." /></label>
+        <div class="form-row">
+          <label>Başlama vaxtı<input required type="time" id="startTime" value="18:00" /></label>
+          <label>Oyun müddəti
+            <select id="duration">
+              <option value="0.5">30 dəqiqə</option>
+              <option value="1">1 saat</option>
+              <option value="1.5">1 saat 30 dəqiqə</option>
+              <option value="2">2 saat</option>
+              <option value="2.5">2 saat 30 dəqiqə</option>
+              <option value="3">3 saat</option>
+              <option value="4">4 saat</option>
+              <option value="5">5 saat</option>
+              <option value="unlimited">Limitsiz</option>
+            </select>
+          </label>
+        </div>
+        <button class="btn btn-primary full" type="submit">Rezerv et</button>
+        <p class="form-note">Demo versiyada rezervasiyalar bu cihazın yaddaşında saxlanılır. Növbəti mərhələdə real database qoşacağıq.</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Modal -->
+  <div class="modal" id="adminModal">
+    <div class="modal-card admin-card">
+      <button class="modal-close" data-close="adminModal">×</button>
+      <div class="admin-login" id="adminLogin">
+        <div class="eyebrow">ADMIN PANEL</div>
+        <h3>Giriş</h3>
+        <label>Şifrə<input type="password" id="adminPassword" placeholder="Demo: 1234" /></label>
+        <button class="btn btn-primary full" id="adminLoginBtn">Daxil ol</button>
+      </div>
+      <div class="admin-panel hidden" id="adminPanel">
+        <div class="admin-head">
+          <div>
+            <div class="eyebrow">ADMIN PANEL</div>
+            <h3>İdarəetmə</h3>
+          </div>
+          <button class="btn btn-ghost dark small" id="adminLogoutBtn">Çıxış</button>
+        </div>
+        <div class="admin-tabs admin-tabs-wrap">
+          <button class="tab active" data-tab="reservations">Rezervasiyalar</button>
+          <button class="tab" data-tab="pcs">PC statusları</button>
+          <button class="tab" data-tab="customers">Müştərilər</button>
+          <button class="tab" data-tab="pricing">Qiymətlər</button>
+          <button class="tab" data-tab="games">Oyunlar</button>
+          <button class="tab" data-tab="settings">Sayt ayarları</button>
+        </div>
+        <div id="adminContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Modal -->
+  <div class="modal" id="chatModal">
+    <div class="modal-card chat-card">
+      <button class="modal-close" data-close="chatModal">×</button>
+      <div class="eyebrow" id="chatEyebrow">DƏSTƏK</div>
+      <h3 id="chatTitle">Forza Support</h3>
+      <div class="chat-box" id="chatBox"></div>
+      <form id="chatForm" class="chat-form">
+        <input id="chatInput" placeholder="Mesajınızı yazın..." autocomplete="off" />
+        <button class="btn btn-primary" type="submit">Göndər</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
