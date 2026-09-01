@@ -1,5 +1,49 @@
-const SUPABASE_URL = "https://oipmogsgtclrpwgdlutc.supabase.co";
+const SUPABASE_URL = "https://oipmogsgtclrpwgdlutc.supabase.co/rest/v1/";
 const SUPABASE_KEY = "sb_publishable__HvYvzZa_2DaEQAoLu1jhA_xqYFYve9";
+
+async function sbRest(path, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: options.prefer || "return=representation",
+      ...(options.headers || {})
+    }
+  });
+
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+
+  if (!res.ok) {
+    throw new Error((data && data.message) || text || "Supabase xətası");
+  }
+  return data;
+}
+
+async function sbRpc(name, body) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+
+  if (!res.ok) {
+    throw new Error((data && data.message) || text || "Rezervasiya xətası");
+  }
+  return data;
+}
+
 const pcGrid = document.getElementById('pcGrid');
 const bookingDate = document.getElementById('bookingDate');
 const bookingModal = document.getElementById('bookingModal');
@@ -79,11 +123,19 @@ function getPcPrice(pc){
   return p.vipSimple;
 }
 
-function getReservations(){
-  return JSON.parse(localStorage.getItem('fgc_reservations') || '[]');
+let reservationsCache = [];
+
+async function loadReservations() {
+  reservationsCache = await sbRest("public_reservation_slots?select=id,pc_id,starts_at,ends_at,is_unlimited,status&order=starts_at.asc");
+  return reservationsCache;
 }
-function saveReservations(data){
-  localStorage.setItem('fgc_reservations', JSON.stringify(data));
+
+function getReservations() {
+  return reservationsCache;
+}
+
+function saveReservations(data) {
+  reservationsCache = data;
 }
 function getPcStatuses(){
   const saved = JSON.parse(localStorage.getItem('fgc_pc_statuses') || 'null');
@@ -109,33 +161,40 @@ function minutesToTime(mins){
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
 }
 function reservationBlockedWindow(r){
-  const start=timeToMinutes(r.start);
-  const end=r.end==='Limitsiz' ? 1440 : timeToMinutes(r.end);
-  return { start: Math.max(0,start-5), end };
+  const start = new Date(r.starts_at).getTime();
+  const end = r.ends_at ? new Date(r.ends_at).getTime() : Number.MAX_SAFE_INTEGER;
+  return { start: start - 5 * 60 * 1000, end };
 }
-function isNowWithin(date,start,end){
-  const now=new Date();
-  if(date!==todayISO()) return false;
-  const cur=now.getHours()*60+now.getMinutes();
-  const s=timeToMinutes(start);
-  const e=end==='Limitsiz'?1440:timeToMinutes(end);
-  return cur>=s && cur<e;
+
+function reservationStartText(r){
+  return new Date(r.starts_at).toLocaleTimeString("az-AZ",{hour:"2-digit",minute:"2-digit"});
 }
+
+function reservationEndText(r){
+  return r.ends_at
+    ? new Date(r.ends_at).toLocaleTimeString("az-AZ",{hour:"2-digit",minute:"2-digit"})
+    : "Limitsiz";
+}
+
+function isNowWithinReservation(r){
+  const now = Date.now();
+  const start = new Date(r.starts_at).getTime();
+  const end = r.ends_at ? new Date(r.ends_at).getTime() : Number.MAX_SAFE_INTEGER;
+  return now >= start && now < end;
+}
+
 function derivedPcStatus(pc, reservationsForDate){
-  if(pc.manualStatus && pc.manualStatus!=='auto') return pc.manualStatus;
-  const activeNow = reservationsForDate.some(r=>r.status!=='cancelled' && isNowWithin(r.date,r.start,r.end));
-  if(activeNow) return 'inuse';
-  const now=new Date();
-  if(bookingDate.value===todayISO()){
-    const cur=now.getHours()*60+now.getMinutes();
-    const upcoming=reservationsForDate.some(r=>{
-      if(r.status==='cancelled')return false;
-      const b=reservationBlockedWindow(r);
-      return cur>=b.start && cur<b.end;
-    });
-    if(upcoming) return 'reserved';
-  }
-  return reservationsForDate.length ? 'reserved' : 'available';
+  if(pc.manualStatus && pc.manualStatus!=="auto") return pc.manualStatus;
+
+  if(reservationsForDate.some(isNowWithinReservation)) return "inuse";
+
+  const now = Date.now();
+  if(reservationsForDate.some(r=>{
+    const b = reservationBlockedWindow(r);
+    return now >= b.start && now < b.end;
+  })) return "reserved";
+
+  return reservationsForDate.length ? "reserved" : "available";
 }
 
 function renderPCs(){
@@ -144,7 +203,7 @@ function renderPCs(){
   const date = bookingDate.value;
   pcGrid.innerHTML='';
   statuses.forEach(pc=>{
-    const todays = reservations.filter(r=>r.pcId===pc.id && r.date===date && r.status!=='cancelled');
+    const todays = reservations.filter(r=>r.pc_id===pc.id && String(r.starts_at).slice(0,10)===date && ['reserved','in_use'].includes(r.status));
     let derivedStatus = pc.status==='maintenance' ? 'maintenance' : derivedPcStatus(pc, todays);
 
     const card=document.createElement('article');
@@ -157,13 +216,13 @@ function renderPCs(){
       <div class="pc-meta">
         <span>🎮 ${pc.tier}</span>
         <span>💳 ${getPcPrice(pc)} AZN/saat</span>
-        <span>🕒 ${todays.length ? todays.map(r=>`${r.start}-${r.end}`).join(', ') : 'Boş'}</span>
+        <span>🕒 ${todays.length ? todays.map(r=>`${reservationStartText(r)}-${reservationEndText(r)}`).join(', ') : 'Boş'}</span>
         <button class="btn btn-ghost dark" type="button" data-games-pc="${pc.id}">Oyunlara bax</button>
       </div>
       ${todays.length ? `<div class="pc-schedule">${todays.map(r=>{
         const b=reservationBlockedWindow(r);
-        const prep=minutesToTime(b.start);
-        return `<span class="slot-chip buffer">${prep}-${r.start} hazırlıq</span><span class="slot-chip booked">${r.start}-${r.end} rezerv</span>`;
+        const prep=new Date(b.start).toLocaleTimeString("az-AZ",{hour:"2-digit",minute:"2-digit"});
+        return `<span class="slot-chip buffer">${prep}-${reservationStartText(r)} hazırlıq</span><span class="slot-chip booked">${reservationStartText(r)}-${reservationEndText(r)} rezerv</span>`;
       }).join('')}</div>` : ''}
       <div class="pc-actions">
         <button class="btn ${derivedStatus==='maintenance'?'btn-ghost dark':'btn-primary'}"
@@ -203,61 +262,47 @@ document.querySelectorAll('.modal').forEach(m=>{
   m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')});
 });
 
-bookingForm.addEventListener('submit',e=>{
+bookingForm.addEventListener('submit', async e=>{
   e.preventDefault();
-  const pcId=Number(selectedPc.value);
-  const start=document.getElementById('startTime').value;
-  const durationRaw=document.getElementById('duration').value;
-  const duration=durationRaw==='unlimited' ? 'unlimited' : Number(durationRaw);
-  const [h,m]=start.split(':').map(Number);
-  let end;
-  if(duration==='unlimited'){
-    end='Limitsiz';
-  }else{
-    const totalMinutes = h*60 + m + Math.round(duration*60);
-    const endH = Math.floor(totalMinutes/60)%24;
-    const endM = totalMinutes%60;
-    end=`${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}`;
+
+  try {
+    const pcId = Number(selectedPc.value);
+    const date = bookingDate.value;
+    const start = document.getElementById('startTime').value;
+    const durationRaw = document.getElementById('duration').value;
+    const isUnlimited = durationRaw === 'unlimited';
+    const duration = isUnlimited ? null : Number(durationRaw);
+
+    const startsAt = new Date(`${date}T${start}:00`);
+    const endsAt = isUnlimited
+      ? null
+      : new Date(startsAt.getTime() + duration * 60 * 60 * 1000);
+
+    if(startsAt <= new Date()){
+      alert("Keçmiş vaxta rezervasiya etmək olmaz.");
+      return;
+    }
+
+    await sbRpc("create_public_reservation", {
+      p_pc_id: pcId,
+      p_customer_name: document.getElementById('customerName').value.trim(),
+      p_customer_phone: document.getElementById('customerPhone').value.trim(),
+      p_starts_at: startsAt.toISOString(),
+      p_ends_at: endsAt ? endsAt.toISOString() : null,
+      p_is_unlimited: isUnlimited
+    });
+
+    bookingForm.reset();
+    document.getElementById('startTime').value='18:00';
+    bookingModal.classList.remove('open');
+
+    await loadReservations();
+    renderPCs();
+
+    alert("Rezervasiya uğurla yaradıldı!");
+  } catch(err) {
+    alert(err.message || "Rezervasiya zamanı xəta baş verdi.");
   }
-  const reservations=getReservations();
-  const newStart=timeToMinutes(start);
-  const newEnd=end==='Limitsiz'?1440:timeToMinutes(end);
-  const conflict=reservations.some(r=>{
-    if(r.pcId!==pcId || r.date!==bookingDate.value || r.status==='cancelled') return false;
-    const blocked=reservationBlockedWindow(r);
-    return newStart < blocked.end && blocked.start < newEnd;
-  });
-  if(conflict){
-    alert('Bu saat aralığı boş deyil. Mövcud rezervasiyadan əvvəlki 5 dəqiqəlik hazırlıq müddəti də bloklanır.');
-    return;
-  }
-  const pc = getPcStatuses().find(p=>p.id===pcId);
-  const hourlyPrice = getPcPrice(pc);
-  const totalPrice = duration==='unlimited' ? null : hourlyPrice * duration;
-  const loggedCustomer = currentCustomer();
-  reservations.push({
-    id:Date.now(),
-    pcId,
-    customerId: loggedCustomer?.id || null,
-    tier: pc.tier,
-    hourlyPrice,
-    totalPrice,
-    date:bookingDate.value,
-    start,
-    end,
-    duration,
-    name:document.getElementById('customerName').value.trim(),
-    phone:document.getElementById('customerPhone').value.trim(),
-    status:'active',
-    createdAt:new Date().toISOString()
-  });
-  saveReservations(reservations);
-  bookingForm.reset();
-  document.getElementById('startTime').value='18:00';
-  bookingModal.classList.remove('open');
-  renderPCs();
-setInterval(renderPCs, 60000);
-  alert(duration==='unlimited' ? 'Rezervasiya yaradıldı! Müddət: Limitsiz' : `Rezervasiya yaradıldı! Məbləğ: ${totalPrice} AZN`);
 });
 
 bookingDate.addEventListener('change',renderPCs);
@@ -310,23 +355,19 @@ document.querySelectorAll('.tab').forEach(tab=>{
 
 function renderAdmin(tab){
   if(tab==='reservations'){
-    const rs=getReservations().sort((a,b)=>`${a.date}${a.start}`.localeCompare(`${b.date}${b.start}`));
-    adminContent.innerHTML=`<div class="admin-list">${
-      rs.length ? rs.map(r=>`
-        <div class="admin-item">
-          <div>
-            <b>${getPcStatuses().find(p=>p.id===r.pcId)?.name || 'PC'} • ${r.date} ${r.start}-${r.end}</b>
-            <small>${r.name} • ${r.phone} • ${r.tier || ''} • ${r.totalPrice===null?'Limitsiz':(r.totalPrice ?? '')+' AZN'} • ${r.status==='cancelled'?'Ləğv olunub':'Aktiv'}</small>
-          </div>
-          ${r.status!=='cancelled'?`<button data-cancel="${r.id}">Ləğv et</button>`:''}
-        </div>`).join('') : '<p style="color:#9aa3b2">Rezervasiya yoxdur.</p>'
+    const rs = getReservations();
+
+    adminContent.innerHTML = `<div class="admin-list">${
+      rs.length
+        ? rs.map(r=>`
+          <div class="admin-item">
+            <div>
+              <b>PC-${String(r.pc_id).padStart(2,'0')} • ${new Date(r.starts_at).toLocaleString('az-AZ')}</b>
+              <small>${reservationEndText(r)} • ${r.status}</small>
+            </div>
+          </div>`).join('')
+        : '<p style="color:#9aa3b2">Rezervasiya yoxdur.</p>'
     }</div>`;
-    document.querySelectorAll('[data-cancel]').forEach(b=>b.addEventListener('click',()=>{
-      const data=getReservations();
-      const item=data.find(x=>x.id===Number(b.dataset.cancel));
-      if(item)item.status='cancelled';
-      saveReservations(data);renderAdmin('reservations');renderPCs();
-    }));
   }else if(tab==='pcs'){
     const pcs=getPcStatuses();
     adminContent.innerHTML=`<div class="admin-list">${pcs.map(p=>`
@@ -457,11 +498,8 @@ function refreshCustomerDashboard(){
   const latest=getCustomers().find(x=>x.id===c.id)||c;
   document.getElementById('customerBonus').textContent=(latest.bonus||0)+' AZN';
   document.getElementById('customerStatus').textContent=latest.blacklisted?'Qara siyahı':'Aktiv';
-  const mine=getReservations().filter(r=>r.customerId===c.id);
-  document.getElementById('myReservations').innerHTML=mine.length?mine.map(r=>`
-    <div class="admin-item"><div><b>${getPcStatuses().find(p=>p.id===r.pcId)?.name} • ${r.date}</b>
-    <small>${r.start}-${r.end} • ${r.status==='cancelled'?'Ləğv olunub':'Aktiv'}</small></div></div>`).join('')
-    :'<p style="color:#9aa3b2">Rezervasiya yoxdur.</p>';
+  document.getElementById('myReservations').innerHTML =
+    '<p style="color:#9aa3b2">Şəxsi rezervasiya tarixçəsi real login qoşulduqdan sonra burada görünəcək.</p>';
 }
 
 
@@ -516,4 +554,21 @@ document.getElementById('chatForm').addEventListener('submit',e=>{
   },500);
 });
 
-renderPCs();
+(async function boot(){
+  try {
+    await loadReservations();
+  } catch(err) {
+    console.error("Supabase bağlantısı:", err);
+  }
+
+  renderPCs();
+
+  setInterval(async ()=>{
+    try {
+      await loadReservations();
+      renderPCs();
+    } catch(err) {
+      console.error("Rezervasiya yenilənməsi:", err);
+    }
+  }, 30000);
+})();
