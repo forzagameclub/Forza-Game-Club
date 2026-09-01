@@ -1,4 +1,5 @@
-
+const SUPABASE_URL = "https://oipmogsgtclrpwgdlutc.supabase.co";
+const SUPABASE_KEY = "sb_publishable__HvYvzZa_2DaEQAoLu1jhA_xqYFYve9";
 const pcGrid = document.getElementById('pcGrid');
 const bookingDate = document.getElementById('bookingDate');
 const bookingModal = document.getElementById('bookingModal');
